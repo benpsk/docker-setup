@@ -27,8 +27,10 @@ services:
       MYSQL_USER: "${DB_USERNAME:-secret}"
       SERVICE_TAGS: dev
       SERVICE_NAME: mysql
+    ports:
+      - 3307:3306
     volumes:
-      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+      - ./conf/mysql:/docker-entrypoint-initdb.d
     networks:
       - docker-setup
 
@@ -37,10 +39,10 @@ services:
     container_name: nginx-setup
     restart: unless-stopped
     ports:
-      - 8000:80
+      - 9000:80
     volumes:
       - ./:/var/www
-      - ./docker-compose/nginx:/etc/nginx/conf.d
+      - ./conf/nginx:/etc/nginx/conf.d
     networks:
       - docker-setup
 
