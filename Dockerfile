@@ -4,6 +4,9 @@ FROM php:8.0-fpm
 ARG user
 ARG uid
 
+# Set working directory
+WORKDIR /var/www
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
@@ -30,7 +33,6 @@ RUN useradd -G www-data,root -u $uid -d /home/$user $user
 RUN mkdir -p /home/$user/.composer && \
     chown -R $user:$user /home/$user
 
-# Set working directory
-WORKDIR /var/www
+COPY ./laravel-app /var/www/
 
 USER $user

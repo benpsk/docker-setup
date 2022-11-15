@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.9'
 services:
   app:
     build: 
@@ -7,32 +7,18 @@ services:
         uid: 1000
       context: ./ 
       dockerfile: Dockerfile 
-    image: docker-setup
     container_name: app-setup
+    expose:
+      - 9000
     restart: unless-stopped
-    working_dir: /var/www/
+    working_dir: /var/www
     volumes:
+      - ./php.ini:/etc/php/7.4/cli/conf.d/php.ini
       - ./:/var/www
     networks:
       - docker-setup
-
-  db:
-    image: mysql:8.0
-    container_name: mysql-setup
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: "${DB_DATABASE:-secret}"
-      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD:-secret}"
-      MYSQL_PASSWORD: "${DB_PASSWORD:-secret}"
-      MYSQL_USER: "${DB_USERNAME:-secret}"
-      SERVICE_TAGS: dev
-      SERVICE_NAME: mysql
-    ports:
-      - 3310:3306
-    volumes:
-      - ./conf/mysql:/docker-entrypoint-initdb.d
-    networks:
-      - docker-setup
+    depends_on:
+      - db
 
   nginx:
     image: nginx:1.17-alpine
@@ -41,12 +27,41 @@ services:
     ports:
       - 9000:80
     volumes:
+      - ./default.template.conf:/etc/nginx/conf.d/templates/default.template.conf
       - ./:/var/www
-      - ./conf/nginx:/etc/nginx/conf.d
     networks:
       - docker-setup
+    depends_on:
+      - app
+      - db
+
+  db:
+    image: mariadb:10.9.3-jammy
+    container_name: mysql-setup
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: "${DB_DATABASE:-secret}"
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD:-secret}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-secret}"
+      MYSQL_USER: "${DB_USERNAME:-secret}"
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mariadb
+    ports:
+      - 3310:3306
+    volumes:
+      - setup_data:/var/lib/mysql
+    networks:
+      - docker-setup
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u${DB_USERNAME}", "-p${DB_PASSWORD}"]
+      retries: 3
+      timeout: 5s
 
 networks:
   docker-setup:
     driver: bridge
+
+volumes:
+  setup_data:
+    driver: local
   
